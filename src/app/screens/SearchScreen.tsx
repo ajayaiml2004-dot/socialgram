@@ -1,3 +1,4 @@
+import { Search, X } from "lucide-react-native";
 import { useState } from "react";
 import {
   FlatList,
@@ -11,7 +12,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Search, X } from "lucide-react-native";
 
 // -------------------- MOCK DATA --------------------
 
@@ -19,11 +19,36 @@ const photo = (id: string, w: number) =>
   `https://images.unsplash.com/photo-${id}?w=${w}`;
 
 const users = [
-  { id: "1", username: "aj.blaze", name: "AK", image: "1534528741775-53994a69daeb" },
-  { id: "2", username: "john.doe", name: "John Doe", image: "1500648767791-00dcc994a43e" },
-  { id: "3", username: "mike_travels", name: "Mike", image: "1506794778202-cad84cf45f1d" },
-  { id: "4", username: "sara.codes", name: "Sara", image: "1531123897727-8f129e1688ce" },
-  { id: "5", username: "priya.clicks", name: "Priya", image: "1524504388940-b1c1722653e1" },
+  {
+    id: "1",
+    username: "aj.blaze",
+    name: "AK",
+    image: "1534528741775-53994a69daeb",
+  },
+  {
+    id: "2",
+    username: "john.doe",
+    name: "John Doe",
+    image: "1500648767791-00dcc994a43e",
+  },
+  {
+    id: "3",
+    username: "mike_travels",
+    name: "Mike",
+    image: "1506794778202-cad84cf45f1d",
+  },
+  {
+    id: "4",
+    username: "sara.codes",
+    name: "Sara",
+    image: "1531123897727-8f129e1688ce",
+  },
+  {
+    id: "5",
+    username: "priya.clicks",
+    name: "Priya",
+    image: "1524504388940-b1c1722653e1",
+  },
 ];
 
 const imageIds = [
@@ -60,7 +85,7 @@ export default function SearchScreen() {
   const results = users.filter(
     (u) =>
       u.username.toLowerCase().includes(query) ||
-      u.name.toLowerCase().includes(query)
+      u.name.toLowerCase().includes(query),
   );
 
   const cancelSearch = () => {
