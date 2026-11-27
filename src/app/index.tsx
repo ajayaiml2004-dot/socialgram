@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import {LinearGradient} from "expo-linear-gradient";
 import { useState } from "react";
 import {
   Image,
@@ -507,17 +508,23 @@ export default function HomeScreen() {
           >
             {stories.map((story) => (
               <Pressable key={story.id} style={styles.storyItem}>
-                <View
-                  style={[
-                    styles.storyBorder,
-                    story.own && styles.ownStoryBorder,
-                  ]}
-                >
-                  <Image
-                    source={{ uri: story.image }}
-                    style={styles.storyImage}
-                  />
-                </View>
+<LinearGradient
+  colors={
+    story.own
+      ? ["#555555", "#555555"]
+      : ["#F9CE34", "#EE2A7B", "#6228D7"]
+  }
+  start={{ x: 0, y: 1 }}
+  end={{ x: 1, y: 0 }}
+  style={styles.storyGradient}
+>
+  <View style={styles.storyInner}>
+    <Image
+      source={{ uri: story.image }}
+      style={styles.storyImage}
+    />
+  </View>
+</LinearGradient>
 
                 {story.own && (
                   <View style={styles.addStory}>
@@ -646,21 +653,26 @@ const styles = StyleSheet.create({
 
   storyItem: {
     alignItems: "center",
-    width: 67,
+    width: 70,
   },
 
-  storyBorder: {
-    width: 65,
-    height: 65,
-    borderRadius: 33,
-    padding: 3,
-    borderWidth: 2,
-    borderColor: "#E1306C",
-  },
+  storyGradient: {
+  width: 68,
+  height: 68,
+  borderRadius: 34,
+  alignItems: "center",
+  justifyContent: "center",
+},
 
-  ownStoryBorder: {
-    borderColor: "#555555",
-  },
+storyInner: {
+  width: 62,
+  height: 62,
+  borderRadius: 31,
+  backgroundColor: "#080808",
+  padding: 2,
+},
+
+
 
   storyImage: {
     width: "100%",
@@ -670,7 +682,7 @@ const styles = StyleSheet.create({
 
   addStory: {
     position: "absolute",
-    right: 0,
+    right: 2,
     bottom: 22,
     backgroundColor: "#3897F0",
     width: 21,
