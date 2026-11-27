@@ -139,19 +139,19 @@ const initialComments: Comment[] = [
 function CommentsSheet({
   visible,
   onClose,
+  comments,
+  onAddComment,
 }: {
   visible: boolean;
   onClose: () => void;
+  comments: Comment[];
+  onAddComment: (text: string) => void;
 }) {
-  const [comments, setComments] = useState<Comment[]>(initialComments);
   const [text, setText] = useState("");
 
   const addComment = () => {
-    if (!text.trim()) return; // ignore empty comments
-    setComments((prev) => [
-      { id: String(Date.now()), username: "you", text: text.trim() },
-      ...prev,
-    ]);
+    if (!text.trim()) return;
+    onAddComment(text.trim()); // tell PostCard to add it
     setText("");
   };
 
@@ -219,6 +219,7 @@ function PostCard({
 }: PostCardProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
+  const [comments,setComments] = useState<Comment[]>(initialComments)
 
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
@@ -362,6 +363,12 @@ function PostCard({
     Haptics.selectionAsync(); // light "tick"
     onToggleSave(post.id);
   };
+  const handleAddComment = (text: string) => {
+  setComments((prev) => [
+    { id: String(Date.now()), username: "you", text },
+    ...prev,
+  ]);
+};
 
   return (
     <View style={styles.post}>
@@ -447,6 +454,8 @@ function PostCard({
       <CommentsSheet
         visible={commentsVisible}
         onClose={() => setCommentsVisible(false)}
+        comments={comments}
+        onAddComment={handleAddComment}
       />
 
       {/* POST IMAGE + DOUBLE TAP + LONG PRESS */}
@@ -521,7 +530,7 @@ function PostCard({
         </Text>
 
         <Pressable onPress={() => setCommentsVisible(true)}>
-          <Text style={styles.comments}>View all comments</Text>
+          <Text style={styles.comments}>View all {comments.length} comments</Text>
         </Pressable>
 
         <Text style={styles.time}>2 HOURS AGO</Text>
