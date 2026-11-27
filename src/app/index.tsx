@@ -4,7 +4,9 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { useState } from "react";
 import {
+  FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
   Pressable,
   RefreshControl,
@@ -12,6 +14,7 @@ import {
   StatusBar,
   StyleSheet,
   Text,
+  TextInput,
   View,
   useWindowDimensions,
 } from "react-native";
@@ -120,8 +123,83 @@ const tabs = [
   { name: "Profile", icon: User },
 ];
 
-// -------------------- POST COMPONENT --------------------
+// -------------------- COMMENTS SHEET --------------------
+type Comment = {
+  id: string;
+  username: string;
+  text: string;
+};
 
+const initialComments: Comment[] = [
+  { id: "1", username: "sarah_j", text: "This is stunning 😍" },
+  { id: "2", username: "mike_travels", text: "Where is this?" },
+  { id: "3", username: "emma", text: "Goals 🔥" },
+];
+
+function CommentsSheet({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const [comments, setComments] = useState<Comment[]>(initialComments);
+  const [text, setText] = useState("");
+
+  const addComment = () => {
+    if (!text.trim()) return; // ignore empty comments
+    setComments((prev) => [
+      { id: String(Date.now()), username: "you", text: text.trim() },
+      ...prev,
+    ]);
+    setText("");
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.sheetWrapper}>
+        {/* tap the dark area to close */}
+        <Pressable style={styles.sheetBackdrop} onPress={onClose} />
+
+        <KeyboardAvoidingView behavior="padding" style={styles.sheet}>
+          <View style={styles.sheetHandle} />
+          <Text style={styles.sheetTitle}>Comments</Text>
+
+          <FlatList
+            data={comments}
+            keyExtractor={(item) => item.id}
+            keyboardShouldPersistTaps="handled"
+            renderItem={({ item }) => (
+              <Text style={styles.commentText}>
+                <Text style={styles.commentUser}>{item.username} </Text>
+                {item.text}
+              </Text>
+            )}
+          />
+
+          <View style={styles.commentInputRow}>
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              placeholder="Add a comment..."
+              placeholderTextColor="#888888"
+              style={styles.commentInput}
+            />
+            <Pressable onPress={addComment}>
+              <Text style={styles.postButton}>Post</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
+  );
+}
+// -------------------- POST COMPONENT --------------------
 type PostCardProps = {
   post: (typeof posts)[number];
   isLiked: boolean;
@@ -140,6 +218,7 @@ function PostCard({
   onCopyLink,
 }: PostCardProps) {
   const [menuVisible, setMenuVisible] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
 
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
@@ -365,6 +444,10 @@ function PostCard({
           </Pressable>
         </Pressable>
       </Modal>
+      <CommentsSheet
+        visible={commentsVisible}
+        onClose={() => setCommentsVisible(false)}
+      />
 
       {/* POST IMAGE + DOUBLE TAP + LONG PRESS */}
 
@@ -403,7 +486,7 @@ function PostCard({
 
           {/* COMMENT */}
 
-          <Pressable>
+          <Pressable onPress={() => setCommentsVisible(true)}>
             <MessageCircle size={26} color="#FFFFFF" />
           </Pressable>
 
@@ -437,7 +520,7 @@ function PostCard({
           {post.caption}
         </Text>
 
-        <Pressable>
+        <Pressable onPress={() => setCommentsVisible(true)}>
           <Text style={styles.comments}>View all comments</Text>
         </Pressable>
 
@@ -951,5 +1034,67 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600",
+  },
+  sheetWrapper: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  sheet: {
+    height: "60%",
+    backgroundColor: "#1A1A1A",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  sheetHandle: {
+    alignSelf: "center",
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#555555",
+    marginBottom: 12,
+  },
+  sheetTitle: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  commentText: {
+    color: "#DDDDDD",
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  commentUser: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  commentInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#2A2A2A",
+  },
+  commentInput: {
+    flex: 1,
+    color: "#FFFFFF",
+    backgroundColor: "#262626",
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    height: 40,
+  },
+  postButton: {
+    color: "#3897F0",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });
