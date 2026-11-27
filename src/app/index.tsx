@@ -1,5 +1,7 @@
+import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
-import {LinearGradient} from "expo-linear-gradient";
+import { LinearGradient } from "expo-linear-gradient";
+
 import { useState } from "react";
 import {
   Image,
@@ -126,6 +128,7 @@ type PostCardProps = {
   isSaved: boolean;
   onToggleLike: (id: string) => void;
   onToggleSave: (id: string) => void;
+  onCopyLink: () => void;
 };
 
 function PostCard({
@@ -134,6 +137,7 @@ function PostCard({
   isSaved,
   onToggleLike,
   onToggleSave,
+  onCopyLink,
 }: PostCardProps) {
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -143,6 +147,13 @@ function PostCard({
   const zoom = useSharedValue(1);
   const { width } = useWindowDimensions();
   const translateX = useSharedValue(0);
+
+  const handleCopyLink = async () => {
+    await Clipboard.setStringAsync(`https://socialgram.app/post/${post.id}`);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setMenuVisible(false);
+    onCopyLink();
+  };
 
   // Large heart animation
 
@@ -334,7 +345,7 @@ function PostCard({
               </Text>
             </Pressable>
 
-            <Pressable style={styles.menuItem}>
+            <Pressable style={styles.menuItem} onPress={handleCopyLink}>
               <Link size={21} color="#FFFFFF" />
               <Text style={styles.menuText}>Copy link</Text>
             </Pressable>
@@ -443,6 +454,7 @@ export default function HomeScreen() {
   const [savedPosts, setSavedPosts] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -462,6 +474,11 @@ export default function HomeScreen() {
     setSavedPosts((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
+  };
+
+  const showToast = () => {
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 2000);
   };
 
   return (
@@ -508,23 +525,23 @@ export default function HomeScreen() {
           >
             {stories.map((story) => (
               <Pressable key={story.id} style={styles.storyItem}>
-<LinearGradient
-  colors={
-    story.own
-      ? ["#555555", "#555555"]
-      : ["#F9CE34", "#EE2A7B", "#6228D7"]
-  }
-  start={{ x: 0, y: 1 }}
-  end={{ x: 1, y: 0 }}
-  style={styles.storyGradient}
->
-  <View style={styles.storyInner}>
-    <Image
-      source={{ uri: story.image }}
-      style={styles.storyImage}
-    />
-  </View>
-</LinearGradient>
+                <LinearGradient
+                  colors={
+                    story.own
+                      ? ["#555555", "#555555"]
+                      : ["#F9CE34", "#EE2A7B", "#6228D7"]
+                  }
+                  start={{ x: 0, y: 1 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.storyGradient}
+                >
+                  <View style={styles.storyInner}>
+                    <Image
+                      source={{ uri: story.image }}
+                      style={styles.storyImage}
+                    />
+                  </View>
+                </LinearGradient>
 
                 {story.own && (
                   <View style={styles.addStory}>
@@ -550,6 +567,7 @@ export default function HomeScreen() {
             isSaved={savedPosts.includes(post.id)}
             onToggleLike={toggleLike}
             onToggleSave={toggleSave}
+            onCopyLink={showToast}
           />
         ))}
       </ScrollView>
@@ -601,6 +619,12 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {toastVisible && (
+        <View style={styles.toast}>
+          <Text style={styles.toastText}>Link copied</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -657,22 +681,20 @@ const styles = StyleSheet.create({
   },
 
   storyGradient: {
-  width: 68,
-  height: 68,
-  borderRadius: 34,
-  alignItems: "center",
-  justifyContent: "center",
-},
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-storyInner: {
-  width: 62,
-  height: 62,
-  borderRadius: 31,
-  backgroundColor: "#080808",
-  padding: 2,
-},
-
-
+  storyInner: {
+    width: 62,
+    height: 62,
+    borderRadius: 31,
+    backgroundColor: "#080808",
+    padding: 2,
+  },
 
   storyImage: {
     width: "100%",
@@ -915,5 +937,19 @@ storyInner: {
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "500",
+  },
+  toast: {
+    position: "absolute",
+    bottom: 40,
+    alignSelf: "center",
+    backgroundColor: "#262626",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  toastText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
