@@ -1,3 +1,4 @@
+import * as Haptics from "expo-haptics";
 import { useState } from "react";
 import {
   Image,
@@ -171,6 +172,7 @@ function PostCard({
   const handleDoubleTap = () => {
     // Double tap should like, not unlike an already-liked post
     if (!isLiked) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       onToggleLike(post.id);
     }
 
@@ -200,6 +202,7 @@ function PostCard({
     runOnJS: true,
 
     onActivate: () => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       setMenuVisible(true);
     },
   });
@@ -250,6 +253,7 @@ function PostCard({
   // Like button animation
 
   const handleLikePress = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onToggleLike(post.id);
 
     cancelAnimation(buttonScale);
@@ -261,6 +265,11 @@ function PostCard({
         buttonScale.value = withSpring(1);
       }
     });
+  };
+
+  const handleSavePress = () => {
+    Haptics.selectionAsync(); // light "tick"
+    onToggleSave(post.id);
   };
 
   return (
@@ -309,7 +318,7 @@ function PostCard({
             <Pressable
               style={styles.menuItem}
               onPress={() => {
-                onToggleSave(post.id);
+                handleSavePress();
                 setMenuVisible(false);
               }}
             >
@@ -395,7 +404,7 @@ function PostCard({
 
         {/* BOOKMARK */}
 
-        <Pressable onPress={() => onToggleSave(post.id)}>
+        <Pressable onPress={handleSavePress}>
           <Bookmark
             size={25}
             color="#FFFFFF"
