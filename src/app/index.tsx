@@ -11,6 +11,7 @@ import {
   Pressable,
   RefreshControl,
   ScrollView,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
@@ -463,6 +464,12 @@ function PostCard({
     Haptics.selectionAsync(); // light "tick"
     onToggleSave(post.id);
   };
+  const handleShare = async () => {
+    Haptics.selectionAsync();
+    await Share.share({
+      message: `Check out ${post.username}'s post: https://socialgram.app/post/${post.id}`,
+    });
+  };
   const handleAddComment = (text: string) => {
     setComments((prev) => [
       { id: String(Date.now()), username: "you", text },
@@ -601,7 +608,7 @@ function PostCard({
 
           {/* SHARE */}
 
-          <Pressable>
+          <Pressable onPress={handleShare}>
             <Send size={25} color="#FFFFFF" />
           </Pressable>
         </View>
