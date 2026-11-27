@@ -9,11 +9,13 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import {
   GestureDetector,
   useCompetingGestures,
   useLongPressGesture,
+  usePanGesture,
   usePinchGesture,
   useSimultaneousGestures,
   useTapGesture,
@@ -21,6 +23,7 @@ import {
 
 import Animated, {
   cancelAnimation,
+  interpolate,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -113,7 +116,6 @@ const tabs = [
   { name: "Profile", icon: User },
 ];
 
-
 // -------------------- POST COMPONENT --------------------
 
 type PostCardProps = {
@@ -137,6 +139,8 @@ function PostCard({
   const heartOpacity = useSharedValue(0);
   const buttonScale = useSharedValue(1);
   const zoom = useSharedValue(1);
+  const { width } = useWindowDimensions();
+  const translateX = useSharedValue(0);
 
   // Large heart animation
 
@@ -146,8 +150,14 @@ function PostCard({
   }));
 
   const zoomStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: zoom.value }],
-    zIndex: zoom.value > 1 ? 10 : 0, // zoomed image floats above other content
+    transform: [
+      { translateX: translateX.value },
+      {
+        rotate: `${interpolate(translateX.value, [-width, 0, width], [-6, 0, 6])}deg`,
+      },
+      { scale: zoom.value },
+    ],
+    zIndex: zoom.value > 1 ? 10 : 0,
   }));
 
   // Like button animation
@@ -218,10 +228,24 @@ function PostCard({
     },
   });
 
+  const pan = usePanGesture({
+    activeOffsetX: [-15, 15], // only activate after sideways movement
+    failOffsetY: [-10, 10], // vertical movement lets the feed scroll
+
+    onUpdate: (event) => {
+      if (zoom.value > 1) return; // don't swipe while pinch-zooming
+      translateX.value = event.translationX;
+    },
+
+    onDeactivate: () => {
+      translateX.value = withSpring(0); // just snap back
+    },
+  });
+
   const tapGestures = useCompetingGestures(longPress, doubleTap);
 
   // pinch works at the same time as tap/long-press
-  const postGestures = useSimultaneousGestures(pinch, tapGestures);
+  const postGestures = useSimultaneousGestures(pinch, pan, tapGestures);
 
   // Like button animation
 
@@ -439,7 +463,6 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <Text style={styles.logo}>Socialgram.</Text>
 
-
         <View style={styles.headerActions}>
           <Pressable>
             <Heart size={25} color="#FFFFFF" />
@@ -582,12 +605,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-logo: {
-  color: "#FFFFFF",
-  fontSize: 27,
-  fontWeight: "800",
-  letterSpacing: -1.2,
-},
+  logo: {
+    color: "#FFFFFF",
+    fontSize: 27,
+    fontWeight: "800",
+    letterSpacing: -1.2,
+  },
 
   headerActions: {
     flexDirection: "row",
