@@ -2,7 +2,7 @@ import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FlatList,
   Image,
@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import {
   GestureDetector,
+  GestureHandlerRootView,
   useCompetingGestures,
   useLongPressGesture,
   usePanGesture,
@@ -29,8 +30,10 @@ import {
 } from "react-native-gesture-handler";
 
 import Animated, {
+  Easing,
   cancelAnimation,
   interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -122,6 +125,103 @@ const tabs = [
   { name: "Reels", icon: Clapperboard },
   { name: "Profile", icon: User },
 ];
+
+// -------------------- STORY VIEWER --------------------
+
+type Story = (typeof stories)[number];
+
+function StoryViewer({
+  startIndex,
+  onClose,
+}: {
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(startIndex);
+  const progress = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const story: Story = stories[index];
+
+  const goNext = () => {
+    if (index < stories.length - 1) setIndex(index + 1);
+    else onClose(); // last story: close
+  };
+
+  const goPrev = () => {
+    if (index > 0) setIndex(index - 1);
+  };
+
+  // restart the progress bar every time the story changes
+  useEffect(() => {
+    progress.value = 0;
+    progress.value = withTiming(
+      1,
+      { duration: 5000, easing: Easing.linear },
+      (finished) => {
+        if (finished) runOnJS(goNext)();
+      },
+    );
+    return () => cancelAnimation(progress);
+  }, [index]);
+
+  const swipeDown = usePanGesture({
+    runOnJS: true,
+    activeOffsetY: [-15, 15],
+    failOffsetX: [-10, 10],
+    onUpdate: (event) => {
+      translateY.value = Math.max(0, event.translationY); // only downward
+    },
+    onDeactivate: (event) => {
+      if (event.translationY > 120) {
+        onClose();
+      } else {
+        translateY.value = withSpring(0);
+      }
+    },
+  });
+
+  const containerStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  const barStyle = useAnimatedStyle(() => ({
+    width: `${progress.value * 100}%`,
+  }));
+
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#000000" }}>
+        <GestureDetector gesture={swipeDown}>
+          <Animated.View style={[styles.storyContainer, containerStyle]}>
+            <Image
+              source={{ uri: story.image.replace("w=150", "w=900") }}
+              style={styles.storyFull}
+              resizeMode="cover"
+            />
+
+            {/* progress bar */}
+            <View style={styles.storyBarTrack}>
+              <Animated.View style={[styles.storyBarFill, barStyle]} />
+            </View>
+
+            {/* header */}
+            <View style={styles.storyHeader}>
+              <Image source={{ uri: story.image }} style={styles.storyAvatar} />
+              <Text style={styles.storyHeaderName}>{story.name}</Text>
+              <Pressable onPress={onClose} hitSlop={10}>
+                <X size={26} color="#FFFFFF" />
+              </Pressable>
+            </View>
+
+            {/* tap zones */}
+            <Pressable style={styles.tapLeft} onPress={goPrev} />
+            <Pressable style={styles.tapRight} onPress={goNext} />
+          </Animated.View>
+        </GestureDetector>
+      </GestureHandlerRootView>
+    </Modal>
+  );
+}
 
 // -------------------- COMMENTS SHEET --------------------
 type Comment = {
@@ -219,7 +319,7 @@ function PostCard({
 }: PostCardProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
-  const [comments,setComments] = useState<Comment[]>(initialComments)
+  const [comments, setComments] = useState<Comment[]>(initialComments);
 
   const heartScale = useSharedValue(0);
   const heartOpacity = useSharedValue(0);
@@ -364,11 +464,11 @@ function PostCard({
     onToggleSave(post.id);
   };
   const handleAddComment = (text: string) => {
-  setComments((prev) => [
-    { id: String(Date.now()), username: "you", text },
-    ...prev,
-  ]);
-};
+    setComments((prev) => [
+      { id: String(Date.now()), username: "you", text },
+      ...prev,
+    ]);
+  };
 
   return (
     <View style={styles.post}>
@@ -530,7 +630,9 @@ function PostCard({
         </Text>
 
         <Pressable onPress={() => setCommentsVisible(true)}>
-          <Text style={styles.comments}>View all {comments.length} comments</Text>
+          <Text style={styles.comments}>
+            View all {comments.length} comments
+          </Text>
         </Pressable>
 
         <Text style={styles.time}>2 HOURS AGO</Text>
@@ -547,7 +649,7 @@ export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
-
+  const [activeStory, setActiveStory] = useState<number | null>(null);
   const onRefresh = () => {
     setRefreshing(true);
 
@@ -615,8 +717,12 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.storiesList}
           >
-            {stories.map((story) => (
-              <Pressable key={story.id} style={styles.storyItem}>
+            {stories.map((story, i) => (
+              <Pressable
+                key={story.id}
+                style={styles.storyItem}
+                onPress={() => setActiveStory(i)}
+              >
                 <LinearGradient
                   colors={
                     story.own
@@ -716,6 +822,12 @@ export default function HomeScreen() {
         <View style={styles.toast}>
           <Text style={styles.toastText}>Link copied</Text>
         </View>
+      )}
+      {activeStory !== null && (
+        <StoryViewer
+          startIndex={activeStory}
+          onClose={() => setActiveStory(null)}
+        />
       )}
     </SafeAreaView>
   );
@@ -1105,5 +1217,60 @@ const styles = StyleSheet.create({
     color: "#3897F0",
     fontWeight: "700",
     fontSize: 15,
+  },
+  storyContainer: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
+  storyFull: {
+    ...StyleSheet.absoluteFill,
+  },
+  storyBarTrack: {
+    position: "absolute",
+    top: 50,
+    left: 12,
+    right: 12,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    overflow: "hidden",
+  },
+  storyBarFill: {
+    height: "100%",
+    backgroundColor: "#FFFFFF",
+  },
+  storyHeader: {
+    position: "absolute",
+    top: 62,
+    left: 12,
+    right: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  storyAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+  },
+  storyHeaderName: {
+    flex: 1,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  tapLeft: {
+    position: "absolute",
+    top: 110,
+    bottom: 0,
+    left: 0,
+    width: "30%",
+  },
+  tapRight: {
+    position: "absolute",
+    top: 110,
+    bottom: 0,
+    right: 0,
+    width: "70%",
   },
 });
